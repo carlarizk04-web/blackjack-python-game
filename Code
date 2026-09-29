@@ -1,0 +1,278 @@
+import random
+
+
+# -----------------------------
+# Card and Deck Functions
+# -----------------------------
+
+def create_deck():
+    """Create and shuffle a standard 52-card deck."""
+    cards = [
+        "2", "3", "4", "5", "6", "7", "8", "9", "10",
+        "J", "Q", "K", "A"
+    ]
+
+    deck = []
+
+    for suit in ["♠", "♥", "♦", "♣"]:
+        for card in cards:
+            deck.append(card + suit)
+
+    random.shuffle(deck)
+    return deck
+
+
+def get_card_value(card):
+    """Return the value of a card."""
+    rank = card[:-1]
+
+    if rank in ["J", "Q", "K"]:
+        return 10
+
+    if rank == "A":
+        return 11
+
+    return int(rank)
+
+
+def calculate_score(hand):
+    """Calculate the best possible score for a hand."""
+    score = 0
+    aces = 0
+
+    for card in hand:
+        score += get_card_value(card)
+
+        if card[:-1] == "A":
+            aces += 1
+
+    # Convert Ace from 11 to 1 if the score is over 21
+    while score > 21 and aces > 0:
+        score -= 10
+        aces -= 1
+
+    return score
+
+
+# -----------------------------
+# Display Functions
+# -----------------------------
+
+def display_hand(name, hand, hide_first_card=False):
+    """Display a player's or dealer's hand."""
+
+    print(f"\n{name}'s hand:")
+
+    if hide_first_card:
+        print("🂠 " + " ".join(hand[1:]))
+    else:
+        print(" ".join(hand))
+
+        score = calculate_score(hand)
+        print(f"Score: {score}")
+
+
+def display_separator():
+    print("\n" + "=" * 45)
+
+
+# -----------------------------
+# Game Functions
+# -----------------------------
+
+def player_turn(deck, player_hand):
+    """Handle the player's turn."""
+
+    while True:
+        score = calculate_score(player_hand)
+
+        if score > 21:
+            print("\n💥 You busted!")
+            return
+
+        if score == 21:
+            print("\n🎯 You have 21!")
+            return
+
+        print("\nWhat would you like to do?")
+        print("1. Hit")
+        print("2. Stand")
+
+        choice = input("Choose an option (1/2): ").strip()
+
+        if choice == "1":
+            new_card = deck.pop()
+            player_hand.append(new_card)
+
+            print(f"\n🃏 You drew: {new_card}")
+            display_hand("Your", player_hand)
+
+        elif choice == "2":
+            print("\n✋ You chose to stand.")
+            return
+
+        else:
+            print("\n❌ Invalid choice. Please enter 1 or 2.")
+
+
+def dealer_turn(deck, dealer_hand):
+    """Handle the dealer's turn."""
+
+    print("\n🤵 Dealer's turn...")
+
+    display_hand("Dealer", dealer_hand)
+
+    while calculate_score(dealer_hand) < 17:
+        new_card = deck.pop()
+        dealer_hand.append(new_card)
+
+        print(f"\n🃏 Dealer drew: {new_card}")
+        display_hand("Dealer", dealer_hand)
+
+    score = calculate_score(dealer_hand)
+
+    if score > 21:
+        print("\n💥 Dealer busted!")
+    elif score == 21:
+        print("\n🎯 Dealer has 21!")
+    else:
+        print(f"\nDealer stands with {score}.")
+
+
+def determine_winner(player_hand, dealer_hand):
+    """Determine the winner of the round."""
+
+    player_score = calculate_score(player_hand)
+    dealer_score = calculate_score(dealer_hand)
+
+    display_separator()
+
+    print("🏁 FINAL RESULT")
+    print()
+
+    display_hand("Your", player_hand)
+    display_hand("Dealer", dealer_hand)
+
+    print()
+
+    if player_score > 21:
+        print("😢 You lose! You busted.")
+
+    elif dealer_score > 21:
+        print("🎉 You win! The dealer busted.")
+
+    elif player_score > dealer_score:
+        print("🎉 You win!")
+
+    elif player_score < dealer_score:
+        print("😢 Dealer wins!")
+
+    else:
+        print("🤝 It's a tie!")
+
+
+# -----------------------------
+# Blackjack Detection
+# -----------------------------
+
+def is_blackjack(hand):
+    """Check whether a hand is a natural Blackjack."""
+    return len(hand) == 2 and calculate_score(hand) == 21
+
+
+# -----------------------------
+# Main Game
+# -----------------------------
+
+def play_blackjack():
+    """Play one round of Blackjack."""
+
+    deck = create_deck()
+
+    player_hand = [deck.pop(), deck.pop()]
+    dealer_hand = [deck.pop(), deck.pop()]
+
+    display_separator()
+    print("🃏 BLACKJACK")
+    display_separator()
+
+    print("\n🤵 Dealer:")
+    print(f"🂠 {dealer_hand[1]}")
+
+    display_hand("Your", player_hand)
+
+    # Check for Blackjack immediately
+    player_blackjack = is_blackjack(player_hand)
+    dealer_blackjack = is_blackjack(dealer_hand)
+
+    if player_blackjack or dealer_blackjack:
+
+        display_separator()
+        print("🎯 BLACKJACK CHECK")
+
+        if player_blackjack and dealer_blackjack:
+            print("🤝 Both you and the dealer have Blackjack!")
+            print("It's a tie!")
+
+        elif player_blackjack:
+            print("🎉 BLACKJACK! You win!")
+
+        else:
+            print("😢 Dealer has Blackjack. You lose!")
+
+        print("\nDealer's cards:")
+        display_hand("Dealer", dealer_hand)
+
+        return
+
+    # Player's turn
+    player_turn(deck, player_hand)
+
+    # Stop if player busted
+    if calculate_score(player_hand) > 21:
+        display_separator()
+        print("🏁 ROUND OVER")
+        print("😢 You lose because you busted.")
+        return
+
+    # Dealer's turn
+    dealer_turn(deck, dealer_hand)
+
+    # Determine winner
+    determine_winner(player_hand, dealer_hand)
+
+
+# -----------------------------
+# Game Loop
+# -----------------------------
+
+def main():
+    """Main program loop."""
+
+    print("\n🎰 Welcome to Python Blackjack!")
+
+    while True:
+
+        play_blackjack()
+
+        print("\nWould you like to play again?")
+        print("1. Yes")
+        print("2. No")
+
+        choice = input("Choose an option (1/2): ").strip()
+
+        if choice == "1":
+            print("\n🔄 Starting a new game...")
+
+        elif choice == "2":
+            print("\n👋 Thanks for playing Python Blackjack!")
+            break
+
+        else:
+            print("\n❌ Invalid choice. Game will end.")
+            break
+
+
+# Start the game
+if __name__ == "__main__":
+    main()
